@@ -72,7 +72,7 @@ jobs:
 
       - name: Start internal application in background
         run: |
-          java -Dsecret=qazWSXedc -Dmock=http://localhost:8888/ -jar target/internal.jar &
+          jjava -Dsecret=qazWSXedc -Dmock=http://localhost:8888/ -jar internal-0.0.1-SNAPSHOT.jar &
           APP_PID=$!
           echo "Started internal application in background (PID: $APP_PID)"
 
