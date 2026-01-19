@@ -4,6 +4,7 @@ import io.restassured.response.Response;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+
 public class CommonServiceValidations extends ValidationBase {
 
     public void successLogin(Response response) {
