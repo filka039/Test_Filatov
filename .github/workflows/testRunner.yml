@@ -37,7 +37,7 @@ jobs:
       - name: Download JAR from Release
         run: |
           REPO="${{ github.repository }}"
-          TAG="v1.0.0"
+          TAG="1.0.0"
           ASSET_NAME="internal-*.jar"
 
           RELEASE_ID=$(curl -s -H "Accept: application/vnd.github.v3+json" \
