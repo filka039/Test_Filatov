@@ -1,5 +1,6 @@
 package Snapshot_0_0_1;
 
+import io.qameta.allure.Allure;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Step;
 import io.restassured.response.Response;
@@ -9,6 +10,7 @@ import org.example.constants.Actions;
 import org.example.constants.Headers;
 import org.example.requests.services.CommonService;
 import org.example.utils.TokenGenerator;
+import org.example.utils.allureReporter.AllureReporter;
 import org.example.utils.wireMock.WireMockConstants;
 import org.example.utils.wireMock.WireMockUtil;
 import org.junit.jupiter.api.*;
@@ -26,6 +28,7 @@ public class LogoutTests {
 
     CommonService request = new CommonService();
     CommonServiceValidations validations = new CommonServiceValidations();
+    AllureReporter reporter = new AllureReporter();
     Response response;
     String token;
 
@@ -48,6 +51,7 @@ public class LogoutTests {
 
     @Step("{description}")
     protected void step(String description) {
+        Allure.step(description);
         log.info("Шаг {}", description);
     }
 
@@ -59,9 +63,13 @@ public class LogoutTests {
         WireMockUtil.stubPost(WireMockConstants.LOGIN_ENDPOINT_MOCK, WireMockConstants.ACCESS_STATUS_MOCK,
                 WireMockConstants.BODY_SUCCESS_MOCK);
         response = request.postRequest(Headers.getX_API_KEY(), "token=" + token + "&action=" + Actions.LOGIN);
+        Allure.addAttachment("Аутентификация с валидным токеном и действием", reporter.reportRequestResponse(
+                request, Headers.getX_API_KEY(), "token=" + token + "&action=" + Actions.LOGIN, response));
 
-        step("Выход из учетной записи");
+        step("Успешный выход из учетной записи");
         response = request.postRequest(Headers.getX_API_KEY(), "token=" + token + "&action=" + Actions.LOGOUT);
+        Allure.addAttachment("Успешный выход из учетной записи", reporter.reportRequestResponse(
+                request, Headers.getX_API_KEY(), "token=" + token + "&action=" + Actions.LOGOUT, response));
 
         validations.successLogout(response);
     }
@@ -74,12 +82,18 @@ public class LogoutTests {
         WireMockUtil.stubPost(WireMockConstants.LOGIN_ENDPOINT_MOCK, WireMockConstants.ACCESS_STATUS_MOCK,
                 WireMockConstants.BODY_SUCCESS_MOCK);
         response = request.postRequest(Headers.getX_API_KEY(), "token=" + token + "&action=" + Actions.LOGIN);
+        Allure.addAttachment("Аутентификация с валидным токеном и действием", reporter.reportRequestResponse(
+                request, Headers.getX_API_KEY(), "token=" + token + "&action=" + Actions.LOGIN, response));
 
-        step("Выход из учетной записи");
+        step("Успешный выход из учетной записи");
         response = request.postRequest(Headers.getX_API_KEY(), "token=" + token + "&action=" + Actions.LOGOUT);
+        Allure.addAttachment("Успешный выход из учетной записи", reporter.reportRequestResponse(
+                request, Headers.getX_API_KEY(), "token=" + token + "&action=" + Actions.LOGOUT, response));
 
         step("Повторный выход из учетной записи");
         response = request.postRequest(Headers.getX_API_KEY(), "token=" + token + "&action=" + Actions.LOGOUT);
+        Allure.addAttachment("Повторный выход из учетной записи", reporter.reportRequestResponse(
+                request, Headers.getX_API_KEY(), "token=" + token + "&action=" + Actions.LOGOUT, response));
 
         validations.repeatedLogout(response);
     }
@@ -93,35 +107,42 @@ public class LogoutTests {
         WireMockUtil.stubPost(WireMockConstants.LOGIN_ENDPOINT_MOCK, WireMockConstants.ACCESS_STATUS_MOCK,
                 WireMockConstants.BODY_SUCCESS_MOCK);
         response = request.postRequest(Headers.getX_API_KEY(), "token=" + token + "&action=" + Actions.LOGIN);
+        Allure.addAttachment("Аутентификация с валидным токеном и действием", reporter.reportRequestResponse(
+                request, Headers.getX_API_KEY(), "token=" + token + "&action=" + Actions.LOGIN, response));
 
         step(description);
         response = request.postRequest(Headers.getX_API_KEY(), "token=" + methodToken + "&action=" + Actions.LOGOUT);
+        Allure.addAttachment(description, reporter.reportRequestResponse(
+                request, Headers.getX_API_KEY(), "token=" + methodToken + "&action=" + Actions.LOGIN, response));
 
         validations.invalidToken(response);
     }
 
     static Stream<Arguments> invalidTokensProvider() {
         return Stream.of(
-                Arguments.of("С пустым токеном", ""),
-                Arguments.of("Токен с буквой в нижнем регистре", "6448817BFA4DC83D4A44BC6DB8B9746a"),
-                Arguments.of("Токен с буквой, не входящей в диапозон A-F", "6448817BFA4DC83D4A44BC6DB8B9746G"),
-                Arguments.of("Токен из 31 символа", "6448817BFA4DC83D4A44BC6DB8B9746"),
-                Arguments.of("Токен из 33 символов", "6448817BFA4DC83D4A44BC6DB8B97467A")
-        );
+                Arguments.of("пустой токен", ""),
+                Arguments.of("токен с буквой в нижнем регистре", "6448817BFA4DC83D4A44BC6DB8B9746a"),
+                Arguments.of("токен с буквой, не входящей в диапозон A-F", "6448817BFA4DC83D4A44BC6DB8B9746G"),
+                Arguments.of("токен из 31 символа", "6448817BFA4DC83D4A44BC6DB8B9746"),
+                Arguments.of("токен из 33 символов", "6448817BFA4DC83D4A44BC6DB8B97467A"));
     }
 
 
     @ParameterizedTest
     @DisplayName("Выход из учетной записи с недопустимым параметром \"action\"")
     @MethodSource("invalidActionLogout")
-    public void invalidActionLogout(String description, String action) {
+    public void invalidActionLogout(String description, String methodAction) {
         step("Аутентификация с валидным токеном и действием \"" + Actions.LOGIN + "\"");
         WireMockUtil.stubPost(WireMockConstants.LOGIN_ENDPOINT_MOCK, WireMockConstants.ACCESS_STATUS_MOCK,
                 WireMockConstants.BODY_SUCCESS_MOCK);
         response = request.postRequest(Headers.getX_API_KEY(), "token=" + token + "&action=" + Actions.LOGIN);
+        Allure.addAttachment("Аутентификация с валидным токеном и действием", reporter.reportRequestResponse(
+                request, Headers.getX_API_KEY(), "token=" + token + "&action=" + Actions.LOGIN, response));
 
         step(description);
-        response = request.postRequest(Headers.getX_API_KEY(), "token=" + token + "&action=" + action);
+        response = request.postRequest(Headers.getX_API_KEY(), "token=" + token + "&action=" + methodAction);
+        Allure.addAttachment(description, reporter.reportRequestResponse(
+                request, Headers.getX_API_KEY(), "token=" + token + "&action=" + methodAction, response));
 
         validations.invalidAction(response);
     }

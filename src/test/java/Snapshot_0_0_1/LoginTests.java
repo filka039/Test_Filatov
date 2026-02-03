@@ -1,5 +1,6 @@
 package Snapshot_0_0_1;
 
+import io.qameta.allure.Allure;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Step;
 import io.restassured.response.Response;
@@ -9,6 +10,7 @@ import org.example.constants.Actions;
 import org.example.constants.Headers;
 import org.example.requests.services.CommonService;
 import org.example.utils.TokenGenerator;
+import org.example.utils.allureReporter.AllureReporter;
 import org.example.utils.wireMock.WireMockConstants;
 import org.example.utils.wireMock.WireMockUtil;
 import org.junit.jupiter.api.*;
@@ -27,6 +29,7 @@ public class LoginTests {
 
     CommonService request = new CommonService();
     CommonServiceValidations validations = new CommonServiceValidations();
+    AllureReporter reporter = new AllureReporter();
     Response response;
     String token;
 
@@ -49,9 +52,9 @@ public class LoginTests {
 
     @Step("{description}")
     protected void step(String description) {
+        Allure.step(description);
         log.info("Шаг {}", description);
     }
-
 
     @Test
     @DisplayName("Успешная аутентификация")
@@ -60,6 +63,8 @@ public class LoginTests {
         WireMockUtil.stubPost(WireMockConstants.LOGIN_ENDPOINT_MOCK, WireMockConstants.ACCESS_STATUS_MOCK,
                 WireMockConstants.BODY_SUCCESS_MOCK);
         response = request.postRequest(Headers.getX_API_KEY(), "token=" + token + "&action=" + Actions.LOGIN);
+        Allure.addAttachment("Аутентификация с валидным токеном и действием", reporter.reportRequestResponse(
+                request, Headers.getX_API_KEY(), "token=" + token + "&action=" + Actions.LOGIN, response));
 
         validations.successLogin(response);
     }
@@ -70,6 +75,8 @@ public class LoginTests {
     public void withoutX_API_KEYLogin() {
         step("Аутентификация без заголовка X_API_KEY");
         response = request.postRequest("token=" + token + "&action=" + Actions.LOGIN);
+        Allure.addAttachment("Аутентификация без заголовка X_API_KEY",reporter.reportRequestResponse(request,
+                "token=" + token + "&action=" + Actions.LOGIN, response));
 
         validations.wrongX_API_KEYOrToken(response);
     }
@@ -80,6 +87,8 @@ public class LoginTests {
     public void wrongX_API_KEYLogin() {
         step("Аутентификация с неверным заголовком X_API_KEY");
         response = request.postRequest(Headers.getWrongX_API_KEY(), "token=" + token + "&action=" + Actions.LOGIN);
+        Allure.addAttachment("Аутентификация с неверным заголовком X_API_KEY",reporter.reportRequestResponse(request,
+                Headers.getWrongX_API_KEY(), "token=" + token + "&action=" + Actions.LOGIN, response));
 
         validations.wrongX_API_KEYOrToken(response);
     }
@@ -90,16 +99,8 @@ public class LoginTests {
     public void emptyX_API_KEYLogin() {
         step("Аутентификация с пустым заголовком X_API_KEY");
         response = request.postRequest(Headers.getEmptyX_API_KEY(), "token=" + token + "&action=" + Actions.LOGIN);
-
-        validations.wrongX_API_KEYOrToken(response);
-    }
-
-
-    @Test
-    @DisplayName("Аутентификация без токена")
-    public void withoutTokenLogin() {
-        step("Аутентификация без токена");
-        response = request.postRequest(Headers.getEmptyX_API_KEY());
+        Allure.addAttachment("Аутентификация с пустым заголовком X_API_KEY",reporter.reportRequestResponse(request,
+                Headers.getEmptyX_API_KEY(), "token=" + token + "&action=" + Actions.LOGIN, response));
 
         validations.wrongX_API_KEYOrToken(response);
     }
@@ -111,52 +112,56 @@ public class LoginTests {
     public void invalidTokenLogin(String description, String methodToken) {
         step(description);
         response = request.postRequest(Headers.getEmptyX_API_KEY(), "token=" + methodToken + "&action=" + Actions.LOGIN);
+        Allure.addAttachment("Аутентификация c невалидным токеном",reporter.reportRequestResponse(request,
+                Headers.getX_API_KEY(), "token="+ methodToken + "&action=" + Actions.LOGIN, response));
+
         validations.wrongX_API_KEYOrToken(response);
     }
 
     static Stream<Arguments> invalidTokensProvider() {
         return Stream.of(
-                Arguments.of("С пустым токеном", ""),
-                Arguments.of("Токен с буквой в нижнем регистре", "6448817BFA4DC83D4A44BC6DB8B9746a"),
-                Arguments.of("Токен с буквой, не входящей в диапозон A-F", "6448817BFA4DC83D4A44BC6DB8B9746G"),
-                Arguments.of("Токен из 31 символа", "6448817BFA4DC83D4A44BC6DB8B9746"),
-                Arguments.of("Токен из 33 символов", "6448817BFA4DC83D4A44BC6DB8B97467A")
-        );
+                Arguments.of("пустой токен", ""),
+                Arguments.of("токен с буквой в нижнем регистре", "6448817BFA4DC83D4A44BC6DB8B9746a"),
+                Arguments.of("токен с буквой, не входящей в диапозон A-F", "6448817BFA4DC83D4A44BC6DB8B9746G"),
+                Arguments.of("токен из 31 символа", "6448817BFA4DC83D4A44BC6DB8B9746"),
+                Arguments.of("токен из 33 символов", "6448817BFA4DC83D4A44BC6DB8B97467A"));
     }
 
 
     @ParameterizedTest
     @DisplayName("Аутентификация с недопустимым параметром \"action\"")
     @MethodSource("invalidActionLogin")
-    public void invalidActionLogin(String description, String action) {
+    public void invalidActionLogin(String description, String methodAction) {
         step(description);
-        response = request.postRequest(Headers.getX_API_KEY(), "token=" + token + "&action=" + action);
+        response = request.postRequest(Headers.getX_API_KEY(), "token=" + token + "&action=" + methodAction);
+        Allure.addAttachment("Аутентификация с недопустимым параметром \"action\"",reporter.reportRequestResponse(request,
+                Headers.getX_API_KEY(), "token="+ token + "&action=" + methodAction, response));
 
         validations.invalidAction(response);
     }
 
     static Stream<Arguments> invalidActionLogin() {
         return Stream.of(
-                Arguments.of("С пустым действием", ""),
-                Arguments.of("С недопустимым действием", Actions.REGISTER)
-        );
+                Arguments.of("пустые действие", ""),
+                Arguments.of("недопустимое действие", Actions.REGISTER));
     }
 
 
     @ParameterizedTest
     @DisplayName("Аутентификация c допустимым действием, отличным от \"LOGIN\"")
     @MethodSource("wrongActionLogin")
-    public void wrongActionLogin(String description, String action) {
+    public void wrongActionLogin(String description, String methodAction) {
         step(description);
-        response = request.postRequest(Headers.getX_API_KEY(), "token=" + token + "&action=" + action);
+        response = request.postRequest(Headers.getX_API_KEY(), "token=" + token + "&action=" + methodAction);
+        Allure.addAttachment("Аутентификация c допустимым действием, отличным от \"LOGIN\"",reporter.reportRequestResponse(request,
+                Headers.getX_API_KEY(), "token="+ token + "&action=" + methodAction, response));
 
         validations.wrongAction(response);
     }
 
     static Stream<Arguments> wrongActionLogin() {
         return Stream.of(
-                Arguments.of("С действием ACTION", Actions.ACTION),
-                Arguments.of("С действием LOGOUT", Actions.LOGOUT)
-        );
+                Arguments.of("действие", Actions.ACTION),
+                Arguments.of("действие", Actions.LOGOUT));
     }
 }
